@@ -16,6 +16,7 @@
     server_group: apache
     deploy_base_venv_path: "{{ ckan_home }}/default"
     releases_to_keep: 10
-    site_domain: "139.162.221.180"
+    site_domain: staging.ckan-example.com
+    ckan_config_site_url: http://staging.ckan-example.com
     ckan_extensions:
-      - { name: 'ckanext-feedback', repo_url: 'https://github.com/PopulateTools/ckanext-feedback.git' }
+      - { name: 'ckanext-example', repo_url: 'https://github.com/example-username/ckanext-example.git' }
