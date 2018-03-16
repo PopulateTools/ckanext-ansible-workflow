@@ -1,0 +1,127 @@
+---
+## Prepare current release directory
+
+- name: Get release version
+  set_fact:
+    release_version: "{{ lookup('pipe', 'date -u +%Y%m%d%H%M%SZ') }}"
+  run_once: true
+  when: release_version is not defined
+  delegate_to: 127.0.0.1
+
+- name: Get release path
+  set_fact:
+    current_release_path: "{{ releases_path }}/{{ release_version }}"
+
+- name: Clone base virtualenv for current release
+  become: true
+  become_user: ckan
+  command: virtualenv-clone {{ deploy_base_venv_path }} {{ current_release_path }}
+
+- name: Install CKAN application into virtualenv
+  become: true
+  become_user: ckan
+  shell: "{{ current_release_path }}/bin/python setup.py develop"
+  args:
+    chdir: "{{ current_release_path }}/src/ckan/"
+
+## Clone extensions lastest code in /tmp
+
+- name: Clone extensions repositories
+  become: true
+  become_user: "{{ ckan_user }}"
+  git:
+    repo: "{{ item.repo_url }}"
+    dest: "{{ current_release_path }}/src/{{ item.name }}"
+  with_items: "{{ ckan_extensions }}"
+
+## Install extensions and their dependencies
+
+- name: Install plugins into current release virtualenv
+  become: true
+  become_user: "{{ ckan_user }}"
+  shell: "{{ current_release_path }}/bin/python setup.py develop"
+  args:
+    chdir: "{{ current_release_path }}/src/{{ item.name }}/"
+  with_items: "{{ ckan_extensions }}"
+
+- name: Install extensions dependencies
+  become: true
+  become_user: "{{ ckan_user }}"
+  command: "{{ current_release_path }}/bin/pip install -r {{ current_release_path }}/src/{{ item.name }}/requirements.txt"
+  with_items: "{{ ckan_extensions }}"
+
+## Others
+
+- name: Ensure right permissions over current release
+  become: true
+  become_user: root
+  file:
+    path: "{{ current_release_path }}"
+    state: directory
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+    recurse: yes
+
+- name: Clear cloned files
+  file:
+    state: absent
+    path: "/tmp/{{ item }}"
+  with_items: "{{ ckan_extensions }}"
+
+## Update CKAN config file
+
+- name: Copy CKAN config file inside release directory
+  become: true
+  become_user: root
+  template:
+    src: ckan_config.ini.j2
+    dest: "{{ current_release_path }}/{{ ckan_env }}.ini"
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+    mode: "u=rw,g=rw"
+
+## Change current release
+
+- name: Change 'current' symlink to point to current release
+  become: true
+  become_user: root
+  file:
+    src: "{{ current_release_path }}"
+    dest: "{{ current_release_symlink_path }}"
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+    state: link
+
+- name: Make link to Repoze configuration file
+  become: true
+  become_user: root
+  file:
+    src: "{{ current_release_path }}/src/ckan/ckan/config/who.ini"
+    dest: "{{ current_release_symlink_path }}/who.ini"
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+    state: link
+
+- name: Ensure WSGI file points to current configuration file
+  become: true
+  become_user: root
+  template:
+    src: apache.wsgi.j2
+    dest: /etc/ckan/default/apache.wsgi
+    group: "{{ server_group }}"
+    mode: "u=rw,g=r,o=r"
+
+## Restart services
+
+- name: Restart Apache
+  become: true
+  become_user: root
+  service: name=httpd state=restarted
+
+## Clean old releases
+
+- name: Clean old releases
+  become: true
+  become_user: root
+  shell: ls -1dt {{ releases_path }}/* | tail -n +{{ releases_to_keep + 1 }} | xargs rm -rf
+  when: releases_to_keep > 0

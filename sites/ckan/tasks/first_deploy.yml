@@ -1,0 +1,85 @@
+## Install necessary packages
+
+- name: install base packages
+  become: yes
+  become_user: root
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - python-virtualenv-clone
+
+## Setup necessary directories
+
+- name: Create necessary directories
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+  with_items:
+    - "{{ releases_path }}"
+
+- name: Create directory for storing uploads
+  become: true
+  become_user: root
+  file:
+    path: "{{ ckan_config_storage_path }}/{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ server_group }}"
+  with_items:
+    - resources
+    - storage
+
+## Setup virtualenv
+
+- name: Create 'current' symlink that later will point to current release
+  become: true
+  become_user: root
+  file:
+    src: "{{ deploy_base_venv_path }}"
+    dest: "{{ current_release_symlink_path }}"
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+    state: link
+
+- name: Copy CKAN config file default virtualenv
+  become: true
+  become_user: root
+  template:
+    src: ckan_config.ini.j2
+    dest: "{{ current_release_symlink_path }}/{{ ckan_env }}.ini"
+    owner: "{{ ckan_user }}"
+    group: "{{ server_group }}"
+    mode: "u=rw,g=rw"
+
+# Update servers configuration to point to current release
+
+- name: Modify WSGI file to point to right path
+  become: true
+  become_user: root
+  template:
+    src: apache.wsgi.j2
+    dest: /etc/ckan/default/apache.wsgi
+    group: "{{ server_group }}"
+    mode: "u=rw,g=r,o=r"
+  vars:
+    current_config_file_symlink_path: "{{ initial_config_file_symlink_path }}"
+
+- name: Modify apache conf to point to right path
+  become: true
+  become_user: root
+  template:
+    src: ckan_default.conf.j2
+    dest: /etc/httpd/conf.d/ckan_default.conf
+    mode: "u=rw,g=r,o=r"
+
+# Restart servers
+
+- name: Restart Apache
+  become: true
+  become_user: root
+  service: name=httpd state=restarted

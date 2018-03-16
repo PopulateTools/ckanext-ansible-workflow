@@ -1,0 +1,22 @@
+# Include CKAN config variables
+
+- include_vars: ckan_config.yml
+
+# Include environment secrets
+
+- include_vars: production_secrets.yml
+  when: ckan_env == "production"
+
+- include_vars: staging_secrets.yml
+  when: ckan_env == "staging"
+
+# Run specified deploy action
+
+- import_tasks: first_deploy.yml
+  when: deploy_action == "first_deploy"
+
+- import_tasks: deploy.yml
+  when: deploy_action == "deploy"
+
+- import_tasks: rollback.yml
+  when: deploy_action == "rollback"

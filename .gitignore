@@ -1,0 +1,6 @@
+# Ansible
+
+inventory
+*.retry
+sites/ckan/vars/production_secrets.yml
+sites/ckan/vars/staging_secrets.yml

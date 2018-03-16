@@ -1,0 +1,55 @@
+---
+## Change 'default' symlink to point to previous release
+
+- name: Get lastest (broken) release path
+  shell: ls -1dt {{ releases_path }}/* | head -n 1
+  register: lastest_release_path_command
+
+- name: Extract lastest release path
+  set_fact:
+    lastest_release_path: "{{ lastest_release_path_command.stdout }}"
+
+- name: Get previous (working) release path
+  shell: ls -1dt {{ releases_path }}/* | head -n 2 | tail -n 1
+  register: previous_release_path_command
+
+- name: Extract previous release path
+  set_fact:
+    previous_release_path: "{{ previous_release_path_command.stdout }}"
+
+- name: Change 'default' symlink to point to previous release
+  become: true
+  become_user: "{{ ckan_user }}"
+  file:
+    src: "{{ previous_release_path }}"
+    dest: "{{ current_release_symlink_path }}"
+    owner: "{{ ckan_user }}"
+    group: "{{ ckan_user }}"
+    state: link
+
+## Remove lastest release to prevent it being the destiny of a latter rollback
+
+- name: Get releases count
+  shell: ls -l | grep -c ^d
+  args:
+    chdir: "{{ releases_path }}"
+  register: releases_count_command
+
+- name: Extract releases count number
+  set_fact:
+    releases_count: "{{ releases_count_command.stdout }}"
+
+- name: Remove broken release
+  become: true
+  become_user: "{{ ckan_user }}"
+  file:
+    path: "{{ lastest_release_path }}"
+    state: absent
+  when: releases_count|int > 1
+
+## Restart servers
+
+- name: Restart Apache
+  become: true
+  become_user: root
+  service: name=httpd state=restarted

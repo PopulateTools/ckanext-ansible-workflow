@@ -1,0 +1,21 @@
+---
+- hosts: ckan_production
+  become: yes
+  become_user: "{{ ssh_user }}"
+  roles:
+    - { role: 'sites/ckan' }
+  vars:
+    ckan_home: /usr/lib/ckan
+    releases_path: "{{ ckan_home }}/releases"
+    current_release_symlink_path: "{{ ckan_home }}/current"
+    initial_config_file_symlink_path: "/etc/ckan/default/{{ ckan_env }}.ini"
+    current_config_file_symlink_path: "{{ current_release_symlink_path }}/{{ ckan_env }}.ini"
+    ckan_user: ckan
+    ssh_user: root
+    server_user: apache
+    server_group: apache
+    deploy_base_venv_path: "{{ ckan_home }}/default"
+    releases_to_keep: 10
+    site_domain: "139.162.221.180"
+    ckan_extensions:
+      - { name: 'ckanext-feedback', repo_url: 'https://github.com/PopulateTools/ckanext-feedback.git' }

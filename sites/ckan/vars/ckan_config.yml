@@ -1,0 +1,5 @@
+ckan_config_storage_path: /var/lib/ckan
+ckan_config_site_url: http://139.162.221.180
+ckan_config_solr_url: http://127.0.0.1:8080/solr/ckan-schema-2.3
+ckan_config_redis_url: redis://localhost:6379/0
+ckan_config_plugins: 'stats text_view image_view recline_view feedback'
