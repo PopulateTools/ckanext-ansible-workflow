@@ -17,7 +17,7 @@
   set_fact:
     previous_release_path: "{{ previous_release_path_command.stdout }}"
 
-- name: Change 'default' symlink to point to previous release
+- name: Change 'current' symlink to point to previous release
   become: true
   become_user: "{{ ckan_user }}"
   file:

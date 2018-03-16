@@ -15,7 +15,7 @@ This set of roles and scripts provides a framework when working on custom develo
 * Deploying some minor changes to the CKAN core we needed, without forking CKAN.
 * Deploying to several environments (production and staging), without duplicating the tasks for each of this roles.
 
-## Solution
+## Repository organization
 
 The repository is organized as follows:
 
@@ -31,15 +31,15 @@ sites/
     files/
     tasks/
       # tasks for cold deploy, deploy and rollback
-    	deploy.yml
-    	first_deploy.yml
-    	main.yml
-    	rollback.yml
+      deploy.yml
+      first_deploy.yml
+      main.yml
+      rollback.yml
     templates/
       # CKAN config file, parameterized for each environment
-    	ckan_config.ini.j2
+      ckan_config.ini.j2
     vars/
-    	# encrypted vaults for each environment
+      # encrypted vaults for each environment
       production_secrets.yml
       secrets.yml.example
       staging_secrets.yml
@@ -89,15 +89,32 @@ Edit the variables in `ckan_production.yml`, `ckan_staging.yml` and `sites/ckan/
 
 ### First deploy
 
-...
+The `first_deploy.yml` tasks prepare the default CKAN instalation to support the workflow of deploying releases. A summary of the steps is:
+
+1. Creates the releases directory `/usr/lib/ckan/releases`.
+2. Creates the symlink `/usr/lib/ckan/current` that now points to the default CKAN virtualenv, but that later will point to the current release.
+3. Copies the CKAN configuration file inside the default virtualenv.
+4. Modifies the `/etc/ckan/default/apache.wsgi` file to point to the `current` symlink, instead of `default`.
+5. Sets the domain in the virtualhost file `ckan_default.conf`
+
+After running `bin/production_first_deploy.sh` you should have a working CKAN application accessible via web, and prepare for the next deploys.
 
 ### Deploy
 
-...
+The `deploy.yml` tasks deploys a new release of CKAN, with the specified extensions and the changes performed in the CKAN configuration file. You can run it with `bin/production_deploy.sh` and a summary of its steps is:
+
+1. Clones the default virtualenv into the releases directory, inside a timestamped directory (ex. ` /usr/lib/ckan/releases/20180316105723Z`).
+2. Clones the specified extensions directory inside the release virutalenv, install the extensions in the virtualenv and their dependencies (presumed to be in a `requirements.txt` file).
+3. Updates the release CKAN configuration file (ex. `.../20180316105723Z/production.ini`).
+4. Changes the `current` symlink to point to the last release.
+5. If the amount of kept releases was exceeded, removes the oldest release.
 
 ### Rollbacks
 
-...
+The rollback procedure can be run with `bin/production_rollback.sh`. A summary of the steps is the following:
+
+1. Points the `current` symlink to the previous release.
+2. Removes the broken release from `/usr/lib/ckan/releases`.
 
 ## Disclaimer
 

@@ -24,7 +24,7 @@
   args:
     chdir: "{{ current_release_path }}/src/ckan/"
 
-## Clone extensions lastest code in /tmp
+## Clone extensions lastest code
 
 - name: Clone extensions repositories
   become: true
@@ -61,12 +61,6 @@
     owner: "{{ ckan_user }}"
     group: "{{ server_group }}"
     recurse: yes
-
-- name: Clear cloned files
-  file:
-    state: absent
-    path: "/tmp/{{ item }}"
-  with_items: "{{ ckan_extensions }}"
 
 ## Update CKAN config file
 
