@@ -51,9 +51,9 @@ inventory
 
 ## Assumed setup
 
-We assume you have installed CKAN following the official guide. In our case, we did it on a CentOS 7 machine, following [this guide](https://github.com/ckan/ckan/wiki/How-to-install-CKAN-2.x-on-CentOS-7).
+We assume you have installed CKAN following the official guide. In our case, we did it with **CKAN 2.7.2** on a **CentOS 7** machine, following [this guide](https://github.com/ckan/ckan/wiki/How-to-install-CKAN-2.x-on-CentOS-7).
 
-We assume you have the following users in your server:
+We assume you have the following users and groups in your server:
 
 * `root`
 * `apache`
